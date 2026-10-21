@@ -287,7 +287,7 @@ const Calc = (() => {
     const broker = brokerFee(price);
     const etc = price * R.etcCostRate;
     const need = price + tax + broker + etc - loan;
-    return { ltvRate, ltv, cap, dsr, stress, loan, bind, acqRate:r, acq, relief, edu, farm, tax, broker, etc, need,
+    return { ltvRate, ltv, cap, dsr, room, stress, loan, bind, acqRate:r, acq, relief, edu, farm, tax, broker, etc, need,
              monthly: pmt(loan, L.rate / 1200, n) };
   }
   return { run, acqRate, brokerFee, pv, pmt };
@@ -497,10 +497,12 @@ function drawLoan(){
         <div class="field">
           <label for="fIncome">연소득 (부부 합산 가능)</label>
           <div class="inwrap"><input id="fIncome" type="number" inputmode="numeric" min="0" step="100" value="${L.income}"><span>만원</span></div>
+          <span class="hint" id="hIncome">${won(L.income)}</span>
         </div>
         <div class="field">
           <label for="fDebt">기존 대출 연 원리금</label>
           <div class="inwrap"><input id="fDebt" type="number" inputmode="numeric" min="0" step="10" value="${L.debt}"><span>만원</span></div>
+          <span class="hint" id="hDebt">1년에 갚는 원금+이자 (남은 대출 잔액 아님)</span>
         </div>
         <div class="field">
           <label for="fRate">대출 금리</label>
@@ -541,6 +543,12 @@ function drawLoan(){
     el.oninput = () => {
       const v = f(el.value); S.loan[key] = isFinite(v) && v >= 0 ? v : 0;
       if (key === 'cash') $('hCash').textContent = won(S.loan.cash);
+      if (key === 'income') $('hIncome').textContent = won(S.loan.income);
+      if (key === 'income' || key === 'debt') {
+        const room = S.loan.income * S.rules.dsr - S.loan.debt;
+        $('hDebt').textContent = room > 0 ? `1년에 갚는 원금+이자 (남은 대출 잔액 아님) · 새 대출에 쓸 수 있는 연 상환액 ${won(room)}`
+          : `연소득의 ${S.rules.dsr * 100}%(${won(S.loan.income * S.rules.dsr)})를 넘어서 새 대출이 안 나와요. 잔액을 넣지 않았는지 확인하세요`;
+      }
       saveLoan();
     };
   };
@@ -601,6 +609,8 @@ function drawDetail(){
       <div class="crow"><span class="k">+ 법무·등기 등 기타</span><span class="v">${won(x.etc)}</span></div>
       <div class="crow"><span class="k">− 주담대</span><span class="v">${won(x.loan)}</span></div>
       <div class="crow sub"><span>세 한도 중 가장 낮은 값 적용 (${bindLab})</span></div>
+      ${x.room <= 0 ? `<div class="crow sub" style="color:var(--bad)"><span>DSR 한도가 0이에요. 연소득 ${won(S.loan.income)} × ${S.rules.dsr * 100}% = ${won(S.loan.income * S.rules.dsr)}에서 기존 대출 연 원리금 ${won(S.loan.debt)}을 빼면 새 대출에 쓸 수 있는 금액이 남지 않아요. 대출 조건 탭에서 연소득과 기존 대출 연 원리금을 확인해 보세요.</span></div>`
+        : x.bind === 'dsr' ? `<div class="crow sub"><span>DSR: 연 ${won(x.room)} 상환 가능 · 심사 금리 ${(S.loan.rate + x.stress).toFixed(2)}% · ${S.loan.years}년 기준</span></div>` : ''}
       <div class="limits">
         <div class="lim${x.bind === 'ltv' ? ' bind' : ''}">LTV ${Math.round(x.ltvRate * 100)}%<b>${won(Math.floor(x.ltv / 10) * 10)}</b></div>
         <div class="lim${x.bind === 'cap' ? ' bind' : ''}">가격별 한도<b>${won(x.cap)}</b></div>
