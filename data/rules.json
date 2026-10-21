@@ -1,0 +1,22 @@
+{
+  "asOf": "2026-10-19",
+  "note": "대출 규제가 바뀌면 이 파일만 고치면 됩니다. 금액 단위는 만원.",
+  "regulatedAreas": [
+    "서울",
+    "경기 과천시", "경기 광명시", "경기 성남시 분당구", "경기 성남시 수정구", "경기 성남시 중원구",
+    "경기 수원시 영통구", "경기 수원시 장안구", "경기 수원시 팔달구", "경기 안양시 동안구",
+    "경기 용인시 수지구", "경기 의왕시", "경기 하남시",
+    "경기 화성시 동탄구", "경기 용인시 기흥구", "경기 구리시"
+  ],
+  "ltv": { "regulated": 0.4, "nonRegulated": 0.7, "firstHome": 0.7 },
+  "loanCapByPrice": [
+    { "upTo": 150000, "cap": 60000 },
+    { "upTo": 250000, "cap": 40000 },
+    { "upTo": null, "cap": 20000 }
+  ],
+  "dsr": 0.4,
+  "stressRate": 3.0,
+  "stressShare": { "variable": 1.0, "mixed": 0.6, "periodic": 0.3, "fixed": 0 },
+  "firstHomeTaxRelief": { "maxPrice": 120000, "amount": 200 },
+  "etcCostRate": 0.002
+}
