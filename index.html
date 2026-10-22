@@ -21,16 +21,8 @@
   --f-ui:"IBM Plex Sans KR", "Apple SD Gothic Neo", "Malgun Gothic", system-ui, sans-serif;
   --r:14px;
 }
-@media (prefers-color-scheme: dark){ :root:not([data-theme="light"]){
-  --bg:#0E1411; --surface:#17201B; --sunk:#111915; --ink:#E5ECE7; --muted:#93A198; --line:#2A352F;
-  --accent:#43C28E; --accent-ink:#0B1410; --accent-soft:#1D3A2D;
-  --ok:#43C28E; --near:#E6A43C; --over:#6F7B75; --bad:#E07A66;
-  --map-bg:#1B241F; --shadow:0 6px 24px rgba(0,0,0,.45); color-scheme:dark; } }
-:root[data-theme="dark"]{
-  --bg:#0E1411; --surface:#17201B; --sunk:#111915; --ink:#E5ECE7; --muted:#93A198; --line:#2A352F;
-  --accent:#43C28E; --accent-ink:#0B1410; --accent-soft:#1D3A2D;
-  --ok:#43C28E; --near:#E6A43C; --over:#6F7B75; --bad:#E07A66;
-  --map-bg:#1B241F; --shadow:0 6px 24px rgba(0,0,0,.45); color-scheme:dark; }
+/* 지도가 늘 밝은 색이라 화면도 밝은 테마 하나로 맞춘다 */
+:root{color-scheme:light}
 
 [hidden]{display:none!important}
 *,*::before,*::after{box-sizing:border-box}
@@ -43,7 +35,7 @@ button,input,select{font:inherit;color:inherit}
 
 /* ---- Leaflet 핵심 CSS (외부 스타일시트를 못 불러와서 인라인) ---- */
 .leaflet-pane,.leaflet-tile,.leaflet-marker-icon,.leaflet-marker-shadow,.leaflet-tile-container,.leaflet-pane>svg,.leaflet-pane>canvas,.leaflet-zoom-box,.leaflet-image-layer,.leaflet-layer{position:absolute;left:0;top:0}
-.leaflet-container{overflow:hidden;-webkit-tap-highlight-color:transparent;background:var(--map-bg);outline-offset:1px;font-family:var(--f-ui)}
+.leaflet-container{overflow:hidden;-webkit-tap-highlight-color:transparent;background:var(--m-ground);outline-offset:1px;font-family:var(--f-ui)}
 .leaflet-tile,.leaflet-marker-icon,.leaflet-marker-shadow{user-select:none;-webkit-user-select:none;-webkit-user-drag:none}
 .leaflet-container img.leaflet-tile,.leaflet-container .leaflet-marker-pane img,.leaflet-container .leaflet-tile-pane img{max-width:none!important;max-height:none!important;width:auto;padding:0}
 .leaflet-tile{filter:inherit;visibility:hidden}.leaflet-tile-loaded{visibility:inherit}
@@ -62,26 +54,26 @@ button,input,select{font:inherit;color:inherit}
 .leaflet-control-attribution a{color:var(--muted)}
 .leaflet-cluster-anim .leaflet-marker-icon{transition:transform .3s ease-out,opacity .3s ease-in}
 @media (prefers-reduced-motion:reduce){.leaflet-cluster-anim .leaflet-marker-icon,.leaflet-zoom-anim .leaflet-zoom-animated{transition:none}}
-@media (prefers-color-scheme: dark){:root:not([data-theme="light"]) .leaflet-tile-pane{filter:invert(1) hue-rotate(180deg) brightness(.82) contrast(.9) saturate(.6)}}
-:root[data-theme="dark"] .leaflet-tile-pane{filter:invert(1) hue-rotate(180deg) brightness(.82) contrast(.9) saturate(.6)}
 
 /* ---- 마커 ---- */
+/* 지도 위 표시는 지도가 늘 밝은 색이라 테마와 상관없이 같은 색을 쓴다 */
+:root{--m-paper:#FFFFFF;--m-ink:#1E252B;--m-sub:#6E7880;--m-ok:#0FA35B;--m-near:#E2860B;--m-line:rgba(30,37,43,.12);--m-ground:#F2F3F0}
 .pin-icon{background:none;border:0}
-.pin{position:absolute;transform:translate(-50%,-100%);white-space:nowrap;padding:3px 7px;border-radius:7px;
-  font-size:12px;font-weight:600;line-height:1.25;background:var(--surface);color:var(--ink);
-  border:1.5px solid var(--over);box-shadow:0 2px 6px rgba(0,0,0,.18);font-variant-numeric:tabular-nums}
-.pin::after{content:"";position:absolute;left:50%;bottom:-6px;transform:translateX(-50%);border:5px solid transparent;border-top-color:var(--over);border-bottom:0}
-.pin.st-ok{background:var(--ok);border-color:var(--ok);color:#fff}.pin.st-ok::after{border-top-color:var(--ok)}
-.pin.st-near{border-color:var(--near);color:var(--ink)}.pin.st-near::after{border-top-color:var(--near)}
-.pin.st-near b{color:var(--near)}
-.pin.sel{outline:3px solid var(--ink);outline-offset:1px;z-index:5}
-.clu{position:absolute;transform:translate(-50%,-50%);display:grid;place-items:center;min-width:46px;height:46px;padding:0 6px;
-  border-radius:23px;background:color-mix(in srgb,var(--accent) 88%,transparent);color:var(--accent-ink);
-  box-shadow:0 0 0 5px color-mix(in srgb,var(--accent) 22%,transparent);line-height:1.05;text-align:center;font-variant-numeric:tabular-nums}
-.clu b{font-size:13px;font-weight:700}.clu small{font-size:10px;opacity:.9}
-.clu.has-ok{background:var(--ok)}
-.rlabel{position:absolute;transform:translate(-50%,-50%);white-space:nowrap;font-size:11px;font-weight:600;color:var(--muted);
-  letter-spacing:.02em;text-shadow:0 0 3px var(--map-bg),0 0 3px var(--map-bg)}
+.pin{position:absolute;transform:translate(-50%,-100%);white-space:nowrap;padding:3px 8px;border-radius:999px;
+  font-size:12px;font-weight:700;line-height:1.3;letter-spacing:-.01em;background:var(--m-paper);color:var(--m-ink);
+  box-shadow:0 1px 4px rgba(0,0,0,.22);font-variant-numeric:tabular-nums}
+.pin::after{content:"";position:absolute;left:50%;bottom:-4px;transform:translateX(-50%);border:4px solid transparent;border-top-color:var(--m-paper);border-bottom:0}
+.pin.st-ok{background:var(--m-ok);color:#fff}.pin.st-ok::after{border-top-color:var(--m-ok)}
+.pin.st-near{color:var(--m-near)}
+.pin.st-over{color:var(--m-sub);font-weight:600}
+.pin.sel{background:var(--m-ink);color:#fff;z-index:5;transform:translate(-50%,-100%) scale(1.12)}.pin.sel::after{border-top-color:var(--m-ink)}
+.clu{position:absolute;transform:translate(-50%,-50%);display:grid;place-content:center;width:44px;height:44px;border-radius:50%;
+  background:var(--m-paper);color:var(--m-ink);box-shadow:0 2px 8px rgba(0,0,0,.2);line-height:1.1;text-align:center;font-variant-numeric:tabular-nums}
+.clu b{font-size:14px;font-weight:800;letter-spacing:-.02em}.clu small{font-size:9.5px;color:var(--m-sub);font-weight:600}
+.clu.big{width:52px;height:52px}
+.clu.has-ok{box-shadow:0 0 0 2.5px var(--m-ok),0 2px 8px rgba(0,0,0,.2)}.clu.has-ok b{color:var(--m-ok)}
+.rlabel{position:absolute;transform:translate(-50%,-50%);white-space:nowrap;font-size:11px;font-weight:600;color:var(--m-sub);
+  letter-spacing:.02em;text-shadow:0 0 3px var(--m-ground),0 0 3px var(--m-ground)}
 
 /* ---- 앱 골격 ---- */
 #app{position:relative;height:100%}
@@ -106,7 +98,7 @@ input[type=range]{width:100%;accent-color:var(--accent);margin:0}
 .chips{display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;margin-top:8px;padding-bottom:2px}
 .chips::-webkit-scrollbar{display:none}
 .chip{flex:none;border:1px solid var(--line);background:var(--surface);border-radius:999px;padding:6px 12px;font-size:13px;font-weight:500;cursor:pointer;box-shadow:0 1px 3px rgba(0,0,0,.08);white-space:nowrap}
-.chip[aria-pressed="true"]{background:var(--ink);color:var(--surface);border-color:var(--ink)}
+.chip[aria-pressed="true"]{background:var(--accent-soft);color:var(--accent);border-color:color-mix(in srgb,var(--accent) 35%,transparent);font-weight:700}
 .chip.sep{margin-left:4px}
 
 .sheet{position:fixed;z-index:1100;left:0;right:0;bottom:0;background:var(--surface);border-radius:18px 18px 0 0;box-shadow:var(--shadow);
@@ -431,21 +423,21 @@ function initMap(){
   map = L.map('map', { zoomControl:false, attributionControl:true, preferCanvas:false, minZoom:8, maxZoom:18 })
          .setView([37.47, 127.0], 10);
   map.attributionControl.setPrefix(false);
-  const tiles = L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
-    maxZoom:19, attribution:'© <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a>'
+  const tiles = L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
+    maxZoom:19, subdomains:'abcd', attribution:'© <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a> © <a href="https://carto.com/attributions" target="_blank" rel="noopener">CARTO</a>'
   }).addTo(map);
   tiles.on('tileload', () => { tilesOk = true; if (labels) map.removeLayer(labels); });
   tiles.on('tileerror', () => { if (++tileErr === 4 && !tilesOk) showRegionLabels(); });
   setTimeout(() => { if (!tilesOk) showRegionLabels(); }, 3500);
   layer = L.markerClusterGroup({
-    chunkedLoading:true, showCoverageOnHover:false, spiderfyOnMaxZoom:true, maxClusterRadius:52,
+    chunkedLoading:true, showCoverageOnHover:false, spiderfyOnMaxZoom:true, maxClusterRadius:80,
     disableClusteringAtZoom:15,
     iconCreateFunction(cl){
       const ms = cl.getAllChildMarkers();
       let min = Infinity, ok = 0;
       for (const m of ms){ const it = m.options.it; if (it.a.price < min) min = it.a.price; if (it.st === 'ok') ok++; }
       return L.divIcon({ className:'pin-icon', iconSize:null,
-        html:`<span class="clu${ok ? ' has-ok' : ''}"><b>${ms.length}</b><small>${eok(min)}~</small></span>` });
+        html:`<span class="clu${ok ? ' has-ok' : ''}${ms.length >= 100 ? ' big' : ''}"><b>${ms.length}</b><small>${eok(min)}~</small></span>` });
     }
   });
   layer.addTo(map);
@@ -462,7 +454,7 @@ function showRegionLabels(){
   labels.eachLayer(m => m.setZIndexOffset(-1000));
 }
 function pinHtml(it, sel){
-  const cls = it.st === 'ok' ? 'st-ok' : it.st === 'near' ? 'st-near' : '';
+  const cls = it.st === 'ok' ? 'st-ok' : it.st === 'near' ? 'st-near' : it.st === 'over' ? 'st-over' : '';
   return `<span class="pin ${cls}${sel ? ' sel' : ''}">${eok(it.a.price)}</span>`;
 }
 let markerById = new Map();
