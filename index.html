@@ -9,8 +9,6 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+KR:wght@400;500;600;700&display=swap">
-<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet.markercluster/1.5.3/leaflet.markercluster.min.js"></script>
 <style>
 /* 레이아웃: 지도가 화면 전체, 위에는 예산 바, 아래에는 시트(모바일). 넓은 화면에선 왼쪽 패널 + 오른쪽 지도 */
 :root{
@@ -58,7 +56,9 @@ button,input,select{font:inherit;color:inherit}
 /* ---- 마커 ---- */
 /* 지도 위 표시는 지도가 늘 밝은 색이라 테마와 상관없이 같은 색을 쓴다 */
 :root{--m-paper:#FFFFFF;--m-ink:#1E252B;--m-sub:#6E7880;--m-ok:#0FA35B;--m-near:#E2860B;--m-line:rgba(30,37,43,.12);--m-ground:#F2F3F0}
-.pin-icon{background:none;border:0}
+.ov{position:relative;width:0;height:0}
+.ov>span{cursor:pointer}
+.map-err{position:absolute;inset:0;display:grid;place-items:center;text-align:center;color:var(--m-sub);font-size:14px;line-height:1.6;background:var(--m-ground)}
 .pin{position:absolute;transform:translate(-50%,-100%);white-space:nowrap;padding:3px 8px;border-radius:999px;
   font-size:12px;font-weight:700;line-height:1.3;letter-spacing:-.01em;background:var(--m-paper);color:var(--m-ink);
   box-shadow:0 1px 4px rgba(0,0,0,.22);font-variant-numeric:tabular-nums}
@@ -418,57 +418,82 @@ function sortList(){
 }
 
 /* ================= 지도 ================= */
-let map, layer, labels, tilesOk = false, tileErr = 0;
-function initMap(){
-  map = L.map('map', { zoomControl:false, attributionControl:true, preferCanvas:false, minZoom:8, maxZoom:18 })
-         .setView([37.47, 127.0], 10);
-  map.attributionControl.setPrefix(false);
-  const tiles = L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
-    maxZoom:19, subdomains:'abcd', attribution:'© <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a> © <a href="https://carto.com/attributions" target="_blank" rel="noopener">CARTO</a>'
-  }).addTo(map);
-  tiles.on('tileload', () => { tilesOk = true; if (labels) map.removeLayer(labels); });
-  tiles.on('tileerror', () => { if (++tileErr === 4 && !tilesOk) showRegionLabels(); });
-  setTimeout(() => { if (!tilesOk) showRegionLabels(); }, 3500);
-  layer = L.markerClusterGroup({
-    chunkedLoading:true, showCoverageOnHover:false, spiderfyOnMaxZoom:true, maxClusterRadius:80,
-    disableClusteringAtZoom:15,
-    iconCreateFunction(cl){
-      const ms = cl.getAllChildMarkers();
-      let min = Infinity, ok = 0;
-      for (const m of ms){ const it = m.options.it; if (it.a.price < min) min = it.a.price; if (it.st === 'ok') ok++; }
-      return L.divIcon({ className:'pin-icon', iconSize:null,
-        html:`<span class="clu${ok ? ' has-ok' : ''}${ms.length >= 100 ? ' big' : ''}"><b>${ms.length}</b><small>${eok(min)}~</small></span>` });
-    }
+/* 카카오맵 + 직접 만든 묶음 표시 (화면 64px 칸 단위로 묶고, 가까이 확대하면 하나씩) */
+const KAKAO_JS_KEY = "7c6d0951e678e7ebd04c885810f7e49f";
+const HOME = { lat:37.53, lng:127.02, level:9 };
+let map = null, overlays = [];
+function loadKakao(){
+  return new Promise((res, rej) => {
+    if (window.kakao && kakao.maps && kakao.maps.Map) return res();
+    const s = document.createElement('script');
+    s.src = `https://dapi.kakao.com/v2/maps/sdk.js?appkey=${KAKAO_JS_KEY}&autoload=false`;
+    s.onload = () => kakao.maps.load(res);
+    s.onerror = () => rej(new Error('load'));
+    document.head.appendChild(s);
+    setTimeout(() => rej(new Error('timeout')), 12000);
   });
-  layer.addTo(map);
 }
-function showRegionLabels(){
-  if (labels || tilesOk) return;
-  const acc = {};
-  for (const c of S.cx){ const k = c.code; (acc[k] ||= { lat:0, lng:0, n:0, name:c.region }); acc[k].lat += c.lat; acc[k].lng += c.lng; acc[k].n++; }
-  labels = L.layerGroup(Object.values(acc).map(r => L.marker([r.lat / r.n, r.lng / r.n], {
-    interactive:false, keyboard:false,
-    icon:L.divIcon({ className:'pin-icon', iconSize:null, html:`<span class="rlabel">${r.name.replace(/^(서울|경기) /,'')}</span>` })
-  })));
-  labels.addTo(map);
-  labels.eachLayer(m => m.setZIndexOffset(-1000));
+async function initMap(){
+  try { await loadKakao(); }
+  catch (e) {
+    $('map').innerHTML = '<div class="map-err">지도를 불러오지 못했어요.<br>목록 보기는 그대로 쓸 수 있어요.</div>';
+    return;
+  }
+  map = new kakao.maps.Map($('map'), { center:new kakao.maps.LatLng(HOME.lat, HOME.lng), level:HOME.level });
+  map.setMaxLevel(12);
+  kakao.maps.event.addListener(map, 'idle', renderOverlays);
+  let rT; window.addEventListener('resize', () => { clearTimeout(rT); rT = setTimeout(() => map.relayout(), 150); });
+  renderOverlays();
+}
+function overlayEl(html, onClick, label){
+  const el = document.createElement('div');
+  el.className = 'ov';
+  el.innerHTML = html;
+  el.firstElementChild.setAttribute('role', 'button');
+  el.firstElementChild.setAttribute('tabindex', '0');
+  el.firstElementChild.setAttribute('aria-label', label);
+  el.firstElementChild.addEventListener('click', e => { e.stopPropagation(); onClick(); });
+  el.firstElementChild.addEventListener('keydown', e => { if (e.key === 'Enter') onClick(); });
+  return el;
+}
+function renderOverlays(){
+  if (!map) return;
+  for (const o of overlays) o.setMap(null);
+  overlays = [];
+  const proj = map.getProjection(), bounds = map.getBounds(), level = map.getLevel();
+  const cell = level <= 3 ? 0 : 64;
+  const buckets = new Map();
+  let selItem = null;
+  for (const it of S.list){
+    const ll = new kakao.maps.LatLng(it.c.lat, it.c.lng);
+    if (!bounds.contain(ll)) continue;
+    if (it.c.id === S.sel){ selItem = it; continue; }
+    let key = it.c.id;
+    if (cell){ const pt = proj.containerPointFromCoords(ll); key = Math.floor(pt.x / cell) + ',' + Math.floor(pt.y / cell); }
+    let g = buckets.get(key);
+    if (!g){ g = { items:[], lat:0, lng:0 }; buckets.set(key, g); }
+    g.items.push(it); g.lat += it.c.lat; g.lng += it.c.lng;
+  }
+  const add = (el, lat, lng, z) => {
+    const o = new kakao.maps.CustomOverlay({ position:new kakao.maps.LatLng(lat, lng), content:el, xAnchor:0, yAnchor:0, zIndex:z, clickable:true });
+    o.setMap(map); overlays.push(o);
+  };
+  const pin = (it, z) => add(overlayEl(pinHtml(it, S.sel === it.c.id), () => openDetail(it.c.id, true), `${it.c.name} ${won(it.a.price)}`), it.c.lat, it.c.lng, z);
+  for (const g of buckets.values()){
+    if (g.items.length === 1){ pin(g.items[0], g.items[0].st === 'ok' ? 4 : 3); continue; }
+    const n = g.items.length, lat = g.lat / n, lng = g.lng / n;
+    let min = Infinity, ok = 0;
+    for (const it of g.items){ if (it.a.price < min) min = it.a.price; if (it.st === 'ok') ok++; }
+    const html = `<span class="clu${ok ? ' has-ok' : ''}${n >= 100 ? ' big' : ''}"><b>${n}</b><small>${eok(min)}~</small></span>`;
+    add(overlayEl(html, () => map.setLevel(Math.max(1, level - 2), { anchor:new kakao.maps.LatLng(lat, lng), animate:true }), `${n}개 단지, 최저 ${won(min)}`), lat, lng, 2);
+  }
+  if (selItem) pin(selItem, 10);
 }
 function pinHtml(it, sel){
   const cls = it.st === 'ok' ? 'st-ok' : it.st === 'near' ? 'st-near' : it.st === 'over' ? 'st-over' : '';
   return `<span class="pin ${cls}${sel ? ' sel' : ''}">${eok(it.a.price)}</span>`;
 }
-let markerById = new Map();
-function drawMap(){
-  layer.clearLayers(); markerById.clear();
-  const ms = S.list.map(it => {
-    const m = L.marker([it.c.lat, it.c.lng], { it, title:it.c.name,
-      icon:L.divIcon({ className:'pin-icon', iconSize:null, html:pinHtml(it, S.sel === it.c.id) }) });
-    m.on('click', () => openDetail(it.c.id, true));
-    markerById.set(it.c.id, m);
-    return m;
-  });
-  layer.addLayers(ms);
-}
+function drawMap(){ renderOverlays(); }
 
 /* ================= 시트 ================= */
 const $ = id => document.getElementById(id);
@@ -629,14 +654,12 @@ function openDetail(id, fromMap){
   drawDetail();
   redrawPins();
   body.scrollTop = 0;
-  if (!fromMap && it && map) map.setView([it.c.lat, it.c.lng], Math.max(map.getZoom(), 15), { animate:true });
-}
-function redrawPins(){
-  for (const [id, m] of markerById){
-    const it = m.options.it;
-    m.setIcon(L.divIcon({ className:'pin-icon', iconSize:null, html:pinHtml(it, S.sel === id) }));
+  if (!fromMap && it && map){
+    if (map.getLevel() > 4) map.setLevel(4);
+    map.panTo(new kakao.maps.LatLng(it.c.lat, it.c.lng));
   }
 }
+function redrawPins(){ renderOverlays(); }
 function drawDetail(){
   const c = S.cx[S.sel]; if (!c) return;
   const rows = c.areas.map(a => ({ a, res:evalRow(c, a), inb: a.price <= S.budget && a.area >= S.minArea - 0.5 }));
@@ -771,10 +794,12 @@ $('pkGo').onclick = () => {
 document.addEventListener('keydown', e => { if (e.key === 'Escape' && !$('picker').hidden) $('pkCancel').click(); });
 function fitToList(){
   if (!map) return;
-  if (!S.list.length || !S.regions || !S.regions.length){ map.setView([37.47, 127.0], 10); return; }
-  const b = L.latLngBounds(S.list.map(it => [it.c.lat, it.c.lng]));
+  if (!S.list.length || !S.regions || !S.regions.length){ map.setLevel(HOME.level); map.setCenter(new kakao.maps.LatLng(HOME.lat, HOME.lng)); return; }
+  const b = new kakao.maps.LatLngBounds();
+  for (const it of S.list) b.extend(new kakao.maps.LatLng(it.c.lat, it.c.lng));
   const mobile = !matchMedia('(min-width:900px)').matches;
-  map.fitBounds(b, { paddingTopLeft:[20, mobile ? 230 : 20], paddingBottomRight:[20, mobile ? 120 : 20], maxZoom:15 });
+  map.setBounds(b, mobile ? 230 : 30, 30, mobile ? 120 : 30, 30);
+  if (map.getLevel() < 4) map.setLevel(4);
 }
 document.querySelectorAll('[data-area]').forEach(b => { if (b.classList.contains('chip')) b.onclick = () => {
   S.minArea = +b.dataset.area;
@@ -802,10 +827,9 @@ $('tLoan').onclick = () => selectTab('loan');
     : `<span>실거래 ${esc(S.data.period)} · ${esc(S.data.updated)} 갱신</span>`;
   if (S.regions) S.regions = S.regions.filter(c => S.regionCount[c]);
   syncChips();
-  initMap();
   refresh();
   selectTab('list');
-  fitToList();
+  initMap().then(fitToList);
   if (matchMedia('(min-width:900px)').matches) $('sheet').dataset.state = 'open';
   $('loading').hidden = true;
   if (S.regions == null) openPicker();
