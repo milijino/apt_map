@@ -93,6 +93,8 @@ button,input,select{font:inherit;color:inherit}
 .budget{background:var(--surface);border-radius:var(--r);box-shadow:var(--shadow);padding:12px 14px 10px;display:grid;gap:8px}
 .brand{display:flex;align-items:center;justify-content:space-between;gap:8px;font-size:12px;color:var(--muted)}
 .brand strong{color:var(--ink);font-weight:700;font-size:13px;letter-spacing:-.01em}
+.brand strong{white-space:nowrap}
+#dataTag{font-size:11px;text-align:right;min-width:0}
 .sample-tag{font-size:11px;font-weight:600;color:var(--bad);border:1px solid currentColor;border-radius:999px;padding:1px 7px}
 .bline{display:flex;align-items:center;gap:8px}
 .blabel{font-size:12px;color:var(--muted);white-space:nowrap}
@@ -141,6 +143,34 @@ input[type=range]{width:100%;accent-color:var(--accent);margin:0}
 .st-txt-ok{color:var(--ok)}.st-txt-near{color:var(--near)}.st-txt-over{color:var(--muted)}
 .more{margin-top:12px;width:100%;padding:10px;border-radius:10px;border:1px solid var(--line);background:var(--sunk);font-weight:600;cursor:pointer}
 .empty{padding:28px 8px;text-align:center;color:var(--muted);line-height:1.6}
+.ghead{position:sticky;top:-12px;z-index:2;display:flex;justify-content:space-between;align-items:baseline;gap:8px;
+  background:var(--surface);padding:12px 2px 6px;border-bottom:2px solid var(--ink);margin-top:6px}
+.ghead b{font-size:16px;font-weight:700}
+.ghead span{font-size:12px;color:var(--muted);font-variant-numeric:tabular-nums}
+.ghead span em{font-style:normal;color:var(--ok);font-weight:600}
+.chip.region{font-weight:700;max-width:60vw;overflow:hidden;text-overflow:ellipsis}
+.chip.region::after{content:" ▾";font-size:10px;opacity:.7}
+/* 지역 선택 */
+.picker{position:fixed;inset:0;z-index:1600;background:var(--surface);display:flex;flex-direction:column;
+  padding-top:env(safe-area-inset-top,0px)}
+.pk-head{display:flex;align-items:center;justify-content:space-between;gap:8px;
+  padding:14px max(16px,env(safe-area-inset-right,0px)) 10px max(16px,env(safe-area-inset-left,0px));border-bottom:1px solid var(--line)}
+.pk-head h2{margin:0;font-size:18px;font-weight:700;letter-spacing:-.02em}
+.pk-head p{margin:2px 0 0;font-size:12px;color:var(--muted)}
+.pk-x{border:0;background:none;color:var(--muted);font-size:13px;font-weight:600;cursor:pointer;padding:6px}
+.pk-body{flex:1;overflow-y:auto;overscroll-behavior:contain;padding:8px max(16px,env(safe-area-inset-right,0px)) 24px max(16px,env(safe-area-inset-left,0px))}
+.pk-sido{font-size:13px;font-weight:700;color:var(--accent);letter-spacing:.04em;margin:16px 0 8px}
+.pk-city{font-size:12px;color:var(--muted);margin:12px 0 6px;font-weight:600}
+.pk-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(96px,1fr));gap:6px}
+.pk-btn{border:1px solid var(--line);background:var(--sunk);border-radius:10px;padding:9px 6px;cursor:pointer;text-align:center;line-height:1.25;min-width:0}
+.pk-btn b{display:block;font-size:14px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pk-btn small{font-size:11px;color:var(--muted);font-variant-numeric:tabular-nums}
+.pk-btn[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+.pk-btn[aria-pressed="true"] small{color:inherit;opacity:.85}
+.pk-foot{display:flex;gap:8px;border-top:1px solid var(--line);
+  padding:12px max(16px,env(safe-area-inset-right,0px)) calc(12px + env(safe-area-inset-bottom,0px)) max(16px,env(safe-area-inset-left,0px))}
+.pk-foot button{flex:1;border-radius:12px;padding:13px;font-weight:700;font-size:15px;cursor:pointer;border:1px solid var(--line);background:var(--sunk)}
+.pk-foot .go{flex:2;background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
 
 /* 대출 조건 */
 .form{display:grid;gap:14px}
@@ -224,8 +254,8 @@ input[type=range]{width:100%;accent-color:var(--accent);margin:0}
         <input type="range" id="bRange" min="10000" max="300000" step="1000" value="80000" aria-label="매매가 상한">
       </div>
       <div class="chips" role="group" aria-label="필터">
-        <button class="chip" id="cSeoul" aria-pressed="true">서울</button>
-        <button class="chip" id="cGg" aria-pressed="true">경기</button>
+        <button class="chip region" id="cRegion" aria-pressed="false" aria-haspopup="dialog">지역 전체</button>
+        <button class="chip sep" id="cSmall" aria-pressed="true">소형·나홀로 단지 제외</button>
         <button class="chip sep" data-area="0" aria-pressed="true">전체 면적</button>
         <button class="chip" data-area="59" aria-pressed="false">59㎡ 이상</button>
         <button class="chip" data-area="84" aria-pressed="false">84㎡ 이상</button>
@@ -248,6 +278,17 @@ input[type=range]{width:100%;accent-color:var(--accent);margin:0}
     </section>
   </div>
   <div id="map" aria-label="아파트 지도"></div>
+</div>
+<div class="picker" id="picker" role="dialog" aria-modal="true" aria-labelledby="pkTitle" hidden>
+  <div class="pk-head">
+    <div><h2 id="pkTitle">보고 싶은 동네</h2><p>구를 여러 개 고를 수 있어요. 숫자는 예산 안 단지 수</p></div>
+    <button class="pk-x" id="pkClear">선택 해제</button>
+  </div>
+  <div class="pk-body" id="pkBody"></div>
+  <div class="pk-foot">
+    <button id="pkCancel">닫기</button>
+    <button class="go" id="pkGo">전체 보기</button>
+  </div>
 </div>
 <div class="loading" id="loading">실거래 데이터를 불러오는 중…</div>
 
@@ -313,7 +354,8 @@ const store = {
 const S = {
   data:null, rules:null, list:[],
   budget: store.get('apt.budget', 80000),
-  seoul:true, gg:true, minArea:0, cashOnly:false,
+  regions: store.get('apt.regions', null), hideSmall: store.get('apt.hideSmall', true),
+  minArea:0, cashOnly:false,
   sort:'need', shown:80, tab:'list', sel:null, selArea:null,
   loan: Object.assign({}, DEF_LOAN, store.get('apt.loan', {})),
   loanEdited: store.get('apt.loanEdited', false),
@@ -333,6 +375,14 @@ async function load(){
              areas:c[6].map(a => ({ area:a[0], price:a[1], n:a[2], last:a[3] })),
              seoul: rname.startsWith('서울'), reg: regFor(rname) };
   });
+  // 소형·나홀로 단지: 이름에 도시형생활주택·오피스텔·빌라 등이 있거나, 모든 평형이 40㎡ 미만이거나, 6개월 거래가 1건뿐인 곳
+  const SMALL = /(도시형생활주택|오피스텔|빌라|주택조합|청년주택|공동주택|원룸)/;
+  for (const c of S.cx){
+    const trades = c.areas.reduce((t, a) => t + a.n, 0);
+    c.small = SMALL.test(c.name) || c.areas.every(a => a.area < 40) || trades < 2;
+  }
+  S.regionCount = {};
+  for (const c of S.cx) S.regionCount[c.code] = (S.regionCount[c.code] || 0) + 1;
 }
 
 /* ================= 필터·계산 ================= */
@@ -347,7 +397,8 @@ function evalRow(c, a){ return Calc.run(a.price, a.area, c.reg, S.loan, S.rules)
 function refresh(){
   const out = [];
   for (const c of S.cx){
-    if ((c.seoul && !S.seoul) || (!c.seoul && !S.gg)) continue;
+    if (S.regions && S.regions.length && !S.regions.includes(c.code)) continue;
+    if (S.hideSmall && c.small) continue;
     let best = null;
     for (const a of c.areas){
       if (a.area < S.minArea - 0.5 || a.price > S.budget) continue;
@@ -438,7 +489,7 @@ function setSheet(open){
 }
 function drawSummary(){
   const n = S.list.length, ok = S.list.filter(x => x.st === 'ok').length;
-  $('sumMain').innerHTML = `${won(S.budget)} 이하 <span class="num">${n.toLocaleString()}</span>개 단지` +
+  $('sumMain').innerHTML = `${esc(regionLabel(2))} · ${won(S.budget)} 이하 <span class="num">${n.toLocaleString()}</span>개 단지` +
     (S.loan.cash ? ` · <em>현금으로 가능 <span class="num">${ok.toLocaleString()}</span></em>` : '');
   $('sumSub').textContent = S.loan.cash
     ? `보유 현금 ${won(S.loan.cash)} 기준 · 초록 핀이 바로 살 수 있는 곳`
@@ -465,20 +516,35 @@ function drawList(){
   if (!S.list.length){
     body.innerHTML = head + `<div class="empty">조건에 맞는 단지가 없어요.<br>매매가 상한을 올리거나 면적 필터를 풀어보세요.</div>`;
   } else {
-    const rows = S.list.slice(0, S.shown).map(it => `
+    const row = it => `
       <button class="item" data-id="${it.c.id}">
         <span class="i-name">${esc(it.c.name)}</span>
         <span class="i-price">${won(it.a.price)}</span>
         <span class="i-meta">${esc(it.c.region.replace(/^(서울|경기) /,''))} · ${it.a.area}㎡(약 ${pyeong(it.a.area)}평형) · ${it.c.built}년</span>
         <span class="i-need st-txt-${it.st === 'none' ? 'over' : it.st}">현금 ${won(it.res.need)}</span>
-      </button>`).join('');
-    body.innerHTML = head + `<div class="list">${rows}</div>` +
-      (S.list.length > S.shown ? `<button class="more" id="more">${Math.min(80, S.list.length - S.shown)}개 더 보기</button>` : '');
+      </button>`;
+    if (S.regions && S.regions.length){
+      const groups = S.regions.map(code => ({ code, items:S.list.filter(it => it.c.code === code) }));
+      body.innerHTML = head + groups.map(g => {
+        const ok = g.items.filter(x => x.st === 'ok').length;
+        return `<div class="ghead"><b>${esc(shortName(S.data.regions[g.code] || g.code))}</b><span>${g.items.length}곳${S.loan.cash ? ` · <em>현금 가능 ${ok}</em>` : ''}</span></div>` +
+          (g.items.length ? `<div class="list">${g.items.map(row).join('')}</div>` : `<div class="empty" style="padding:14px">예산 안에 맞는 단지가 없어요</div>`);
+      }).join('');
+    } else {
+      body.innerHTML = head + `<div class="list">${S.list.slice(0, S.shown).map(row).join('')}</div>` +
+        (S.list.length > S.shown ? `<button class="more" id="more">${Math.min(80, S.list.length - S.shown)}개 더 보기</button>` : '');
+    }
   }
   const sel = $('sortSel'); sel.value = S.sort;
   sel.onchange = () => { S.sort = sel.value; S.shown = 80; sortList(); drawList(); };
   body.querySelectorAll('.item').forEach(b => b.onclick = () => openDetail(+b.dataset.id, false));
   const more = $('more'); if (more) more.onclick = () => { S.shown += 80; drawList(); };
+}
+function shortName(n){ return String(n).replace(/^(서울|경기) /, ''); }
+function regionLabel(max = 2){
+  if (!S.regions || !S.regions.length) return '수도권 전체';
+  const names = S.regions.map(c => shortName(S.data.regions[c] || c).split(' ').pop());
+  return names.length <= max ? names.join('·') : `${names.slice(0, max).join('·')} 외 ${names.length - max}곳`;
 }
 function esc(s){ return String(s).replace(/[&<>"]/g, ch => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;' }[ch])); }
 
@@ -644,14 +710,80 @@ const budgetChanged = () => { clearTimeout(bT); bT = setTimeout(() => { S.shown 
 $('bMinus').onclick = () => { setBudget(S.budget - 1000); budgetChanged(); };
 $('bPlus').onclick = () => { setBudget(S.budget + 1000); budgetChanged(); };
 $('bRange').oninput = e => { setBudget(+e.target.value); budgetChanged(); };
-const toggle = (el, key) => el.onclick = () => {
-  S[key] = !S[key];
-  if (key !== 'cashOnly' && !S.seoul && !S.gg) S[key === 'seoul' ? 'gg' : 'seoul'] = true;
-  $('cSeoul').setAttribute('aria-pressed', S.seoul); $('cGg').setAttribute('aria-pressed', S.gg);
-  $('cCash').setAttribute('aria-pressed', S.cashOnly);
-  S.shown = 80; refresh();
+$('cCash').onclick = () => { S.cashOnly = !S.cashOnly; $('cCash').setAttribute('aria-pressed', S.cashOnly); S.shown = 80; refresh(); };
+$('cSmall').onclick = () => { S.hideSmall = !S.hideSmall; store.set('apt.hideSmall', S.hideSmall); syncChips(); S.shown = 80; refresh(); };
+function syncChips(){
+  $('cRegion').textContent = regionLabel(2);
+  $('cRegion').setAttribute('aria-pressed', !!(S.regions && S.regions.length));
+  $('cSmall').setAttribute('aria-pressed', S.hideSmall);
+}
+
+/* ---- 지역 선택 ---- */
+let draft = [];
+function budgetCount(code){
+  let n = 0;
+  for (const c of S.cx){
+    if (c.code !== code || (S.hideSmall && c.small)) continue;
+    if (c.areas.some(a => a.price <= S.budget && a.area >= S.minArea - 0.5)) n++;
+  }
+  return n;
+}
+function drawPicker(){
+  const codes = Object.keys(S.regionCount).sort();
+  const btn = code => {
+    const nm = shortName(S.data.regions[code] || code).split(' ').pop();
+    return `<button class="pk-btn" data-code="${code}" aria-pressed="${draft.includes(code)}"><b>${esc(nm)}</b><small>${budgetCount(code)}곳</small></button>`;
+  };
+  const seoul = codes.filter(c => (S.data.regions[c] || '').startsWith('서울'));
+  const gg = codes.filter(c => !(S.data.regions[c] || '').startsWith('서울'));
+  const cities = {};
+  for (const c of gg){
+    const parts = shortName(S.data.regions[c] || c).split(' ');
+    const city = parts.length > 1 ? parts[0] : '시·군';
+    (cities[city] ||= []).push(c);
+  }
+  const single = cities['시·군'] || []; delete cities['시·군'];
+  $('pkBody').innerHTML = `
+    <div class="pk-sido">서울</div><div class="pk-grid">${seoul.map(btn).join('')}</div>
+    <div class="pk-sido">경기</div>
+    ${Object.entries(cities).map(([city, cs]) => `<div class="pk-city">${esc(city)}</div><div class="pk-grid">${cs.map(btn).join('')}</div>`).join('')}
+    <div class="pk-city">그 밖의 시·군</div><div class="pk-grid">${single.map(btn).join('')}</div>`;
+  $('pkBody').querySelectorAll('.pk-btn').forEach(b => b.onclick = () => {
+    const c = b.dataset.code;
+    draft = draft.includes(c) ? draft.filter(x => x !== c) : [...draft, c];
+    b.setAttribute('aria-pressed', draft.includes(c));
+    syncPickerFoot();
+  });
+  syncPickerFoot();
+}
+function syncPickerFoot(){
+  $('pkGo').textContent = draft.length ? `${draft.length}곳 보기` : '수도권 전체 보기';
+}
+function openPicker(){
+  draft = [...(S.regions || [])];
+  drawPicker();
+  $('picker').hidden = false;
+  $('pkBody').scrollTop = 0;
+}
+function closePicker(){ $('picker').hidden = true; }
+$('cRegion').onclick = openPicker;
+$('pkCancel').onclick = () => { if (S.regions == null){ S.regions = []; store.set('apt.regions', []); } closePicker(); };
+$('pkClear').onclick = () => { draft = []; drawPicker(); };
+$('pkGo').onclick = () => {
+  S.regions = draft; store.set('apt.regions', draft);
+  closePicker(); syncChips(); S.shown = 80; S.sel = null;
+  refresh();
+  if (S.tab === 'list') drawList();
+  fitToList();
 };
-toggle($('cSeoul'), 'seoul'); toggle($('cGg'), 'gg'); toggle($('cCash'), 'cashOnly');
+document.addEventListener('keydown', e => { if (e.key === 'Escape' && !$('picker').hidden) $('pkCancel').click(); });
+function fitToList(){
+  if (!map) return;
+  if (!S.list.length || !S.regions || !S.regions.length){ map.setView([37.47, 127.0], 10); return; }
+  const b = L.latLngBounds(S.list.map(it => [it.c.lat, it.c.lng]));
+  const mobile = !matchMedia('(min-width:900px)').matches;
+  map.fitBounds(b, { paddingTopLeft:[20, mobile ? 230 : 20], paddingBottomRight:[20, mobile ? 120 : 20], maxZoom:15 });
+}
 document.querySelectorAll('[data-area]').forEach(b => { if (b.classList.contains('chip')) b.onclick = () => {
   S.minArea = +b.dataset.area;
   document.querySelectorAll('.chip[data-area]').forEach(x => x.setAttribute('aria-pressed', x === b));
@@ -676,11 +808,15 @@ $('tLoan').onclick = () => selectTab('loan');
   }
   $('dataTag').innerHTML = S.data.sample ? '<span class="sample-tag">샘플 데이터</span>'
     : `<span>실거래 ${esc(S.data.period)} · ${esc(S.data.updated)} 갱신</span>`;
+  if (S.regions) S.regions = S.regions.filter(c => S.regionCount[c]);
+  syncChips();
   initMap();
   refresh();
   selectTab('list');
+  fitToList();
   if (matchMedia('(min-width:900px)').matches) $('sheet').dataset.state = 'open';
   $('loading').hidden = true;
+  if (S.regions == null) openPicker();
 })();
 </script>
 
